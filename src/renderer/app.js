@@ -96,6 +96,28 @@
     card.append(row);
   }
 
+  // A small pill that appears just above a button, then fades. Lives on the body so a re-render can't remove it.
+  function flashAbove(btn, text) {
+    const tip = el('div', 'flash', text);
+    tip.setAttribute('role', 'status');
+    document.body.append(tip);
+    const r = btn.getBoundingClientRect();
+    const left = r.left + r.width / 2 - tip.offsetWidth / 2;
+    tip.style.left = `${Math.max(4, Math.min(window.innerWidth - tip.offsetWidth - 4, left))}px`;
+    tip.style.top = `${Math.max(4, r.top - tip.offsetHeight - 6)}px`;
+    setTimeout(() => tip.classList.add('out'), 1400);
+    setTimeout(() => tip.remove(), 1800);
+  }
+
+  async function copyToken(btn) {
+    try {
+      await api.copyGeminiToken();
+      flashAbove(btn, 'Token copied');
+    } catch {
+      flashAbove(btn, 'Could not copy');
+    }
+  }
+
   function messageRow(card, text, buttonLabel, onClick, primary) {
     const row = el('div', 'card-msg');
     row.append(el('span', '', text));
@@ -121,7 +143,7 @@
     card.append(head);
 
     if (view.auth === 'waiting') { // fed by a Chrome companion (Gemini): nothing received yet
-      messageRow(card, view.error || 'Waiting for the Chrome companion…', 'Copy token', () => api.copyGeminiToken());
+      messageRow(card, view.error || 'Waiting for the Chrome companion…', 'Copy token', (e) => copyToken(e.currentTarget));
     } else if (view.auth === 'signed-out') {
       messageRow(card, 'Not signed in', 'Sign in', () => api.signIn(view.id), true);
     } else if (view.auth === 'signing-in') {
@@ -232,10 +254,13 @@
       if (v.enabled && v.external) {
         const copy = el('button', 'btn small', 'Copy token');
         copy.title = 'Paste this into the Chrome companion\'s options page';
-        copy.addEventListener('click', () => api.copyGeminiToken());
+        copy.addEventListener('click', () => copyToken(copy));
         const fresh = el('button', 'btn small', 'New token');
         fresh.title = 'Replace the token (the companion must be given the new one)';
-        fresh.addEventListener('click', () => api.newGeminiToken());
+        fresh.addEventListener('click', async () => {
+          await api.newGeminiToken();
+          flashAbove(fresh, 'New token created');
+        });
         head.append(copy, fresh);
       } else if (v.enabled) {
         if (v.auth === 'signed-in') {
@@ -354,12 +379,18 @@
     document.body.classList.toggle('compact', isCompact());
   }
 
+  let lastSent = null;
   function scheduleResize() {
     if (resizeQueued) return;
     resizeQueued = true;
     requestAnimationFrame(() => {
       resizeQueued = false;
-      api.resize(Math.ceil($('app').getBoundingClientRect().height), isCompact());
+      const height = Math.ceil($('app').getBoundingClientRect().height);
+      const compact = isCompact();
+      // Only talk to the main process when something actually changed, so a resize can never feed itself.
+      if (lastSent && lastSent.height === height && lastSent.compact === compact) return;
+      lastSent = { height, compact };
+      api.resize(height, compact);
     });
   }
 

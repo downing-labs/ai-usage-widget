@@ -291,7 +291,7 @@ function createWidgetWindow() {
   centerOnResize = pos.centered === true;
   widgetWin = new BrowserWindow({
     width, height: WIDGET_START_HEIGHT, x: pos.x, y: pos.y,
-    frame: false, resizable: false, maximizable: false, fullscreenable: false,
+    frame: false, resizable: true, maximizable: false, fullscreenable: false,
     alwaysOnTop: s.alwaysOnTop,
     show: false,
     backgroundColor: nativeTheme.shouldUseDarkColors ? '#0a0a0b' : '#ffffff',
@@ -302,6 +302,7 @@ function createWidgetWindow() {
       nodeIntegration: false,
     },
   });
+  widgetWin.setResizable(false); // created resizable so its first size is exact (see resizeWidget); fixed from here on
   widgetWin.loadFile(path.join(__dirname, 'src', 'renderer', 'index.html'));
   widgetWin.once('ready-to-show', () => widgetWin.show());
   widgetWin.webContents.on('did-finish-load', () => {
@@ -354,13 +355,15 @@ function resizeWidget(height, compact = false) {
   if (!widgetWin || widgetWin.isDestroyed()) return;
   const width = compact ? COMPACT_WIDTH : WIDGET_WIDTH;
   const h = Math.max(WIDGET_MIN_HEIGHT, Math.min(maxWidgetHeight(), Math.ceil(Number(height) || WIDGET_START_HEIGHT)));
-  widgetWin.setContentSize(width, h);
-  // A frameless window can come out a few px shorter than asked (DPI rounding / frame metrics), which eats the
-  // bottom padding. Check what we actually got and ask for the difference.
-  const got = widgetWin.getContentSize()[1];
-  if (got !== h && Math.abs(h - got) <= 16) {
-    logger.debugLog(`widget height: asked ${h}, got ${got}; correcting`);
-    widgetWin.setContentSize(width, h + (h - got));
+  // On Windows a frameless window that is not resizable comes out smaller than asked (it loses the invisible
+  // frame: about 8px of height and 16px of width, and the loss is inconsistent between calls). That ate the bottom
+  // padding and made the page width flip, which re-triggered resizing. A resizable window gets exact sizes,
+  // so it is made resizable only for the instant of the call. The user can never resize it by hand.
+  const [curW, curH] = widgetWin.getContentSize();
+  if (curW !== width || curH !== h) {
+    widgetWin.setResizable(true);
+    widgetWin.setContentSize(width, h);
+    widgetWin.setResizable(false);
   }
   let b = widgetWin.getBounds();
   const wa = screen.getDisplayMatching(b).workArea;

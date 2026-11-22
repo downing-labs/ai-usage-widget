@@ -8,3 +8,6 @@ logs/
 build.log
 
 spike/
+
+# local test profile for first-run testing
+.fresh-profile/
