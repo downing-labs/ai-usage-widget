@@ -53,8 +53,8 @@ Two builds are produced for each release:
 
 | Build | File | Notes |
 | --- | --- | --- |
-| Installer | `AI Usage Widget-<version>-win-Setup.exe` | Installs per user. Start Menu and desktop shortcuts. Supports **Start with Windows**. |
-| Portable | `AI Usage Widget-<version>-win-portable.exe` | Single file, no install. Run it from any folder. No **Start with Windows**. |
+| Installer | `AI.Usage.Widget-<version>-win-Setup.exe` | Installs per user. Start Menu and desktop shortcuts. Supports **Start with Windows**. |
+| Portable | `AI.Usage.Widget-<version>-win-portable.exe` | Single file, no install. Run it from any folder. No **Start with Windows**. |
 
 The builds are not code-signed yet, so Windows SmartScreen may warn on first run. Choose "More info", then "Run anyway".
 
