@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>AI Usage Widget - Gemini companion</title>
+  <style>
+    body { font: 14px/1.5 system-ui, sans-serif; max-width: 520px; margin: 32px auto; padding: 0 16px; color: #1b1b24; }
+    h1 { font-size: 18px; }
+    input { width: 100%; box-sizing: border-box; padding: 8px; font: 13px ui-monospace, monospace; margin: 6px 0 10px; }
+    button { padding: 6px 14px; margin-right: 6px; }
+    #status { margin-top: 12px; font-weight: 600; }
+    .ok { color: #1a7f37; } .bad { color: #b42318; } .muted { color: #666; font-weight: 400; }
+  </style>
+</head>
+<body>
+  <h1>AI Usage Widget - Gemini companion</h1>
+  <p>In the widget: Settings &rarr; tick Gemini &rarr; <b>Copy token</b>. Paste it here.</p>
+  <label for="token">Token</label>
+  <input id="token" type="password" autocomplete="off" spellcheck="false">
+  <button id="save">Save and test</button><button id="clear">Remove token</button>
+  <div id="status"></div>
+  <p class="muted">The token stays on this computer (it is not synced by Chrome). This companion only reads your Gemini usage page and sends the two percentages to the widget on 127.0.0.1.</p>
+  <script src="options.js"></script>
+</body>
+</html>

@@ -1,0 +1,61 @@
+{
+  "name": "ai-usage-widget",
+  "version": "0.1.0",
+  "description": "One tray widget for your AI usage meters: Claude, ChatGPT, Muse and Gemini.",
+  "main": "main.js",
+  "author": "Downing-labs",
+  "license": "GPL-3.0-only",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "start:debug": "electron . --aiw-debug",
+    "test": "node --test",
+    "build:win": "electron-builder --win"
+  },
+  "dependencies": {
+    "electron-store": "^8.1.0"
+  },
+  "devDependencies": {
+    "electron": "^41.10.1",
+    "electron-builder": "^26.18.0"
+  },
+  "build": {
+    "appId": "com.downinglabs.aiusagewidget",
+    "productName": "AI Usage Widget",
+    "copyright": "Copyright (c) 2026 Downing-labs",
+    "publish": null,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "package.json",
+      "src/**/*",
+      "assets/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "extensions/gemini",
+        "to": "extensions/gemini"
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "assets/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "artifactName": "${productName}-${version}-win-Setup.${ext}"
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-win-portable.${ext}"
+    }
+  }
+}
