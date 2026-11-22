@@ -51,6 +51,7 @@ class ProviderSession {
     const store = this.hooks.store;
     return {
       run: (script) => this.win.webContents.executeJavaScript(script),
+      isSigningIn: () => this.auth === 'signing-in',
       store: {
         get: (key) => store.get(`p.${id}.${key}`),
         set: (key, value) => store.set(`p.${id}.${key}`, value),

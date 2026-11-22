@@ -14,6 +14,7 @@ const USAGE_ACTION_NAME = 'fetchSubscriptionAction';
 const DEFAULT_USAGE_BODY = '[{"includeAgreement":true}]';
 const DISCOVERY_CONCURRENCY = 6;
 const DISCOVERY_MIN_INTERVAL_MS = 5 * 60 * 1000;
+const DISCOVERY_SIGNIN_INTERVAL_MS = 5 * 1000; // while the user is signing in, rescan quickly once they land
 
 // Pure: Muse's normalized usage -> { plan, meters }.
 function toReading(usage) {
@@ -86,7 +87,8 @@ async function replayUsageRequest(ctx) {
     if (last.usage) return last;
   }
   let id = ctx.cache.actionId;
-  if (!id && Date.now() - (ctx.cache.lastDiscoveryAt || 0) >= DISCOVERY_MIN_INTERVAL_MS) {
+  const minGap = ctx.isSigningIn && ctx.isSigningIn() ? DISCOVERY_SIGNIN_INTERVAL_MS : DISCOVERY_MIN_INTERVAL_MS;
+  if (!id && Date.now() - (ctx.cache.lastDiscoveryAt || 0) >= minGap) {
     ctx.cache.lastDiscoveryAt = Date.now();
     id = await discoverActionId(ctx);
     if (id) ctx.cache.actionId = id;
@@ -112,10 +114,28 @@ async function pageShowsSignIn(ctx) {
 async function read(ctx) {
   // The page makes its own usage call a few seconds after hydrating. With nothing learned yet,
   // give the capture (attach) a chance before giving up on this attempt.
-  for (let i = 0; i < 15 && !ctx.store.get('action'); i++) await ctx.sleep(1000);
+  // While signing in there is no waiting: the sign-in check runs every few seconds and on every new
+  // session cookie, and the window should close the moment the user lands signed in.
+  const signingIn = Boolean(ctx.isSigningIn && ctx.isSigningIn());
+  if (!signingIn) {
+    // Don't sit out the whole wait on a page that plainly shows the login prompt. Two checks in a row,
+    // so a signed-in page that is still hydrating is never mistaken for a signed-out one.
+    let loginHits = 0;
+    for (let i = 0; i < 15 && !ctx.store.get('action'); i++) {
+      loginHits = (await pageShowsSignIn(ctx)) ? loginHits + 1 : 0;
+      if (loginHits >= 2) return { state: 'signed-out' };
+      await ctx.sleep(1000);
+    }
+  }
+  // Still on the login page: nothing to scan or replay yet.
+  if (signingIn && !ctx.store.get('action') && (await pageShowsSignIn(ctx))) return { state: 'signed-out' };
   const result = await replayUsageRequest(ctx);
   if (result.usage) return { state: 'ok', ...toReading(result.usage) };
-  if (await pageShowsSignIn(ctx)) return { state: 'signed-out' };
+  if (await pageShowsSignIn(ctx)) {
+    // A scan on the signed-out page can never find the action; don't let it use up the rescan budget.
+    ctx.cache.lastDiscoveryAt = 0;
+    return { state: 'signed-out' };
+  }
   ctx.cache.actionId = null; // signed in but failing: allow a fresh bundle scan next time
   return { state: 'error', reason: result.reason };
 }
